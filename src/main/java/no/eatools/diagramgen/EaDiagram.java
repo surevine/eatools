@@ -157,6 +157,7 @@ public class EaDiagram {
         File f = new File(getAbsolutePathName());
         f.mkdirs();
         String diagramFileName = getAbsoluteFilename();
+        
         if (eaRepo.getProject().PutDiagramImageToFile(eaDiagram.GetDiagramGUID(), diagramFileName, imageFileFormat.isRaster())) {
             log.info("Diagram generated at: " + diagramFileName);
             return true;

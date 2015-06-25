@@ -48,6 +48,9 @@ public class EaRepo {
     private File reposFile;
     private Repository repository = null;
     private boolean isOpen = false;
+    
+    private String connectionString =  null;
+    private String rootPackage = null;
 
 
     /**
@@ -57,7 +60,13 @@ public class EaRepo {
         reposFile = repositoryFile;
     }
 
-    /**
+    public EaRepo(String connectionString, String rootPackage) {
+    	// Constructor for DB backed repo
+    	this.connectionString = connectionString;
+    	this.rootPackage = rootPackage;
+	}
+
+	/**
      * Open the Enterprise Architect model repository.
      */
     public void open() {
@@ -65,9 +74,17 @@ public class EaRepo {
             return;
         }
 
-        log.info("Opening model repository: " + reposFile.getAbsolutePath());
         repository = new Repository();
-        repository.OpenFile(reposFile.getAbsolutePath());
+        
+        // Now switch between DB set or file based
+        if (this.rootPackage != null) {
+            log.info("Opening DB backed model repository: " + this.connectionString);
+        	repository.OpenFile(this.connectionString);
+        } else {
+            log.info("Opening file backed model repository: " + reposFile.getAbsolutePath());
+        	repository.OpenFile(reposFile.getAbsolutePath());	
+        }
+        
         isOpen = true;
     }
 
@@ -82,7 +99,6 @@ public class EaRepo {
      * Closes the Enterprise Architect model repository.
      */
     public void close() {
-        log.info("Closing repository: " + reposFile.getAbsolutePath());
         repository.CloseFile();
         repository.Exit();
         isOpen = false;
@@ -161,7 +177,15 @@ public class EaRepo {
      */
     public Package getRootPackage() {
         ensureRepoIsOpen();
-        String rootPkgName = EaApplicationProperties.EA_ROOTPKG.value();
+        
+        String rootPkgName = null;
+        
+        if (this.rootPackage != null) {
+        	rootPkgName =  this.rootPackage;
+        } else {
+        	rootPkgName = EaApplicationProperties.EA_ROOTPKG.value();	
+        }
+         
         System.out.println("root package name = " + rootPkgName);
         for (Package aPackage : repository.GetModels()) {
             if (aPackage.GetName().equalsIgnoreCase(rootPkgName)) {

@@ -1,10 +1,12 @@
 package no.eatools.diagramgen;
 
 import no.eatools.util.EaApplicationProperties;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
+import java.util.Map;
 
 /**
  * Utility to be used from the command line to output all diagrams in an EA repo
@@ -25,21 +27,45 @@ public class EaDiagramGenerator {
             } else {
                 EaApplicationProperties.init();
             }
-            File modelFile = new File(EaApplicationProperties.EA_PROJECT.value());
-            EaRepo eaRepo = new EaRepo(modelFile);
-            eaRepo.open();
-            if (!EaApplicationProperties.EA_DIAGRAM_TO_GENERATE.value().equals("")) {
-                generateSpecificDiagram(eaRepo);
+            
+            if (EaApplicationProperties.isExtendedPropertiesSet()) {
+            	// We've got the Spring/XML based support for multiple db backed repos
+            	
+            	Map<String, String> map = EaApplicationProperties.getExtendedDbConnectionProperties();
+            	
+            	for (Map.Entry<String, String> entry : map.entrySet())
+            	{
+            		EaRepo eaDbRepo = new EaRepo(entry.getKey(), entry.getValue());
+            		eaDbRepo.open();
+            		
+            		int count = EaDiagram.generateAll(eaDbRepo);
+            		log.info("Generated " + count + " diagrams");
+            		
+            		eaDbRepo.close();
+            	}
             } else {
-                // geenrate all diagrams
-                int count = EaDiagram.generateAll(eaRepo);
-                log.info("Generated " + count + " diagrams");
+            	File modelFile = new File(EaApplicationProperties.EA_PROJECT.value());
+                EaRepo eaRepo = new EaRepo(modelFile);
+                eaRepo.open();
+                if (!EaApplicationProperties.EA_DIAGRAM_TO_GENERATE.value().equals("")) {
+                    generateSpecificDiagram(eaRepo);
+                } else {
+                    // generate all diagrams
+                    int count = EaDiagram.generateAll(eaRepo);
+                    log.info("Generated " + count + " diagrams");
+                }
+                
+                eaRepo.close();
             }
-            eaRepo.close();
+            
+            
+            
+            
         } catch (Exception e) {
             String msg = "An error occurred. This might be caused by an incorrect diagramgen-repo connect string.\n" +
                     "Verify that the connect string in the ea.application.properties file is the same as\n" +
                     "the connect string that you can find in Enterprise Architect via the File->Open Project dialog";
+            e.printStackTrace();
             System.out.println(msg);
         }
     }

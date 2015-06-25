@@ -2,9 +2,12 @@ package no.eatools.util;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -48,6 +51,8 @@ public enum EaApplicationProperties {
         propsFilename = propertyFilename;
         _init();
     }
+    
+    private static Map<String, String> dbConnex = null;
 
     /**
      * Loads development tool properties from the property file propsFilename which can be given as a
@@ -57,6 +62,10 @@ public enum EaApplicationProperties {
      * @return loaded properties
      */
     static void _init() {
+    	
+    	dbConnex = ExtendedApplicationProperties.getDatabaseConnectionsMap();
+    	
+    	
         final String fileSeparator = SystemProperties.FILE_SEPARATOR.value();
         if (propsFilename == null) {
             propsFilename = getPropertiesFilename();
@@ -136,4 +145,31 @@ public enum EaApplicationProperties {
     public String key() {
         return Camel.toPropertyName(super.toString());
     }
+    
+    static class ExtendedApplicationProperties {
+    	
+    	public static Map<String, String> getDatabaseConnectionsMap() {
+    		
+    		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("ea.application.xml");
+    		
+    		Map<String, String> retVal = ctx.getBean("dbConnex", Map.class);
+   
+    		ctx.close();
+    		
+    		if (retVal != null) {
+    			return retVal;
+    		} else {
+    			return Collections.EMPTY_MAP;
+    		}
+       	}
+    	
+    }
+
+	public static boolean isExtendedPropertiesSet() {
+		return !dbConnex.isEmpty();
+	}
+
+	public static Map<String, String> getExtendedDbConnectionProperties() {
+		return dbConnex;
+	}
 }
